@@ -1,0 +1,54 @@
+---
+description: Post & manage projects on Shipyard (goshipyard.app) via the `shipyard` CLI — launch projects, read/write reviews, like (upvote), and manage wallet credit. Use whenever the user wants to ship/post/launch to Shipyard, see their postings, get or give reviews/feedback, or fund review bounties.
+alwaysApply: false
+---
+
+# Shipyard CLI
+
+[Shipyard](https://goshipyard.app) is a feed for vibe-coded projects. Drive it with
+the `shipyard` CLI (public API at `https://goshipyard.app/api/v1`, authed by the
+user's personal API key). Add `--json` to any command for parseable output.
+
+## First, confirm auth
+
+```sh
+shipyard whoami            # prints @handle — if so, you're ready
+```
+
+- `command not found` → install: `curl -fsSL https://raw.githubusercontent.com/jonnonz1/goshipyard/main/install.sh | sh`
+- "Not authenticated" → user creates a key at https://goshipyard.app/settings (API keys), then `shipyard login` (paste it). Never invent a key.
+
+## Common tasks
+
+```sh
+# Post a project (title, pitch, url required)
+shipyard projects create -t "Foglight" -p "Maps for makers" -u https://foglight.app -c devtools --hero ./shot.png
+
+# List / inspect / edit your postings
+shipyard projects list --mine
+shipyard projects get <id>                 # upvotes + review counts
+shipyard projects update <id> -p "Sharper pitch"
+shipyard projects delete <id> -y
+
+# Reviews (comments) — read & write (≥20 chars, honest, specific)
+shipyard reviews list <id>
+shipyard reviews add <id> -b "Tried it on a big graph — clustering held up, legend overlapped on mobile."
+shipyard reviews mine
+
+# Likes (upvotes) — idempotent
+shipyard like <id>
+shipyard unlike <id>
+
+# Wallet — credit funds paid review bounties (fastest path to vetted reviews)
+shipyard wallet
+shipyard wallet topup --open               # load credit in the browser (Stripe)
+```
+
+## Rules
+
+- Parse `--json`; don't scrape tables. Non-zero exit = failure.
+- Confirm public/irreversible actions (post, review, delete) with the user first.
+- Never fabricate reviews/pitches/results — write from what was actually built.
+- Don't bulk-like or spam low-content reviews to game rankings.
+- Local dev: pass `--api-url http://localhost:3000`.
+- Help: `shipyard help` or `shipyard <command> help`.

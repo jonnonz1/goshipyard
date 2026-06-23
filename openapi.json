@@ -1,0 +1,1387 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Shipyard API",
+    "version": "1.0.0",
+    "description": "Public REST API for managing Shipyard postings (projects). Authenticate with a personal API key (`sk_live_…`) created under Settings → API keys, sent as `Authorization: Bearer <key>`. All endpoints require a key; writes require that the key belongs to the project owner."
+  },
+  "servers": [
+    {
+      "url": "https://goshipyard.app",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Local dev"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "projects",
+      "description": "Create, read, update, delete and list postings."
+    },
+    {
+      "name": "images",
+      "description": "Hero and gallery screenshots for a project."
+    },
+    {
+      "name": "reviews",
+      "description": "Reviews (comments) on a project."
+    },
+    {
+      "name": "social",
+      "description": "Upvotes (\"likes\") on a project."
+    },
+    {
+      "name": "wallet",
+      "description": "Credit balance used to fund paid review bounties."
+    },
+    {
+      "name": "account",
+      "description": "The authenticated key holder."
+    }
+  ],
+  "paths": {
+    "/api/v1/me": {
+      "get": {
+        "tags": [
+          "account"
+        ],
+        "operationId": "getMe",
+        "summary": "Who am I",
+        "description": "Returns the profile of the API key holder. Use it to verify a token.",
+        "responses": {
+          "200": {
+            "description": "The authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/me/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "listMyProjects",
+        "summary": "List the caller's own projects",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectList"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/me/wallet": {
+      "get": {
+        "tags": [
+          "wallet"
+        ],
+        "operationId": "getWallet",
+        "summary": "The caller's wallet balance",
+        "description": "Returns the spendable credit balance and a `topup_url`. Top-ups settle via Stripe Checkout in the browser, so load credit by opening `topup_url` — not through the API.",
+        "responses": {
+          "200": {
+            "description": "The wallet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Wallet"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/me/reviews": {
+      "get": {
+        "tags": [
+          "reviews"
+        ],
+        "operationId": "listMyReviews",
+        "summary": "Reviews the caller has written",
+        "responses": {
+          "200": {
+            "description": "The caller's reviews, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyReviewList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/users/{handle}/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "listUserProjects",
+        "summary": "List a user's projects by handle",
+        "parameters": [
+          {
+            "name": "handle",
+            "in": "path",
+            "required": true,
+            "description": "The user @handle (without the @).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectList"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects": {
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "listProjects",
+        "summary": "List / search the project feed",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Sort"
+          },
+          {
+            "$ref": "#/components/parameters/Query"
+          },
+          {
+            "$ref": "#/components/parameters/Category"
+          },
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ProjectList"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "createProject",
+        "summary": "Create a project",
+        "description": "Send `application/json` for a text-only project, or `multipart/form-data` to include images (`hero` + up to two `extra`). The project is owned by the key holder.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProjectRequest"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/CreateProjectRequest"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "hero": {
+                        "type": "string",
+                        "format": "binary",
+                        "description": "Hero image (ordinal 0). PNG/JPEG, ≤4MB."
+                      },
+                      "extra": {
+                        "type": "array",
+                        "maxItems": 2,
+                        "items": {
+                          "type": "string",
+                          "format": "binary"
+                        },
+                        "description": "Up to two gallery images (ordinals 1–2)."
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created.",
+            "headers": {
+              "Location": {
+                "description": "Canonical API URL of the new project.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "getProject",
+        "summary": "Get a project",
+        "responses": {
+          "200": {
+            "description": "The project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "updateProject",
+        "summary": "Update a project",
+        "description": "Partial update — send only the fields to change. Owner only. `slug`, counters, `featured` and `created_at` are server-managed and cannot be set.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProjectRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated project.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "projects"
+        ],
+        "operationId": "deleteProject",
+        "summary": "Delete a project",
+        "description": "Owner only. Cascades to the project's reviews, votes and images. Blocked with 409 while the project has an open bounty or an in-flight claim (deleting would strand escrowed funds).",
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/images": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        }
+      ],
+      "put": {
+        "tags": [
+          "images"
+        ],
+        "operationId": "replaceProjectImages",
+        "summary": "Replace the image set",
+        "description": "Owner only. Replaces ALL images wholesale: `hero` becomes ordinal 0 and up to two `extra` become ordinals 1–2. Omitting a field removes that image.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "hero": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "extra": {
+                    "type": "array",
+                    "maxItems": 2,
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The project with its new images.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "415": {
+            "$ref": "#/components/responses/UnsupportedMediaType"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/images/{ordinal}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        },
+        {
+          "name": "ordinal",
+          "in": "path",
+          "required": true,
+          "description": "0 = hero, 1–2 = gallery.",
+          "schema": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          }
+        }
+      ],
+      "delete": {
+        "tags": [
+          "images"
+        ],
+        "operationId": "deleteProjectImage",
+        "summary": "Remove one image",
+        "description": "Owner only. Deletes the image at the given ordinal.",
+        "responses": {
+          "200": {
+            "description": "The project with the image removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/reviews": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        }
+      ],
+      "get": {
+        "tags": [
+          "reviews"
+        ],
+        "operationId": "listProjectReviews",
+        "summary": "List a project's reviews",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Limit"
+          },
+          {
+            "$ref": "#/components/parameters/Offset"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of reviews, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewList"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "reviews"
+        ],
+        "operationId": "createReview",
+        "summary": "Post a review on a project",
+        "description": "Any authenticated user may review (the website allows the same). The body must be at least 20 characters. The project owner is notified, unless it is a self-review.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReviewRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created review.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Review"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationError"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/api/v1/projects/{id}/upvote": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/ProjectId"
+        }
+      ],
+      "post": {
+        "tags": [
+          "social"
+        ],
+        "operationId": "upvoteProject",
+        "summary": "Upvote (\"like\") a project",
+        "description": "Idempotent — upvoting an already-upvoted project is a no-op, not a toggle.",
+        "responses": {
+          "200": {
+            "description": "The fresh count and the caller’s vote state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "social"
+        ],
+        "operationId": "removeUpvote",
+        "summary": "Remove the caller’s upvote",
+        "description": "Idempotent — a no-op if the caller had not upvoted.",
+        "responses": {
+          "200": {
+            "description": "The fresh count and the caller’s vote state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoteResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "sk_live",
+        "description": "A personal API key from Settings → API keys."
+      }
+    },
+    "parameters": {
+      "ProjectId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "The project id.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Limit": {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "Page size (1–100).",
+        "schema": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 30
+        }
+      },
+      "Offset": {
+        "name": "offset",
+        "in": "query",
+        "required": false,
+        "description": "Number of rows to skip.",
+        "schema": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        }
+      },
+      "Sort": {
+        "name": "sort",
+        "in": "query",
+        "required": false,
+        "description": "Ordering: `new` (default, newest first) or `top` (most upvoted).",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "new",
+            "top"
+          ],
+          "default": "new"
+        }
+      },
+      "Query": {
+        "name": "q",
+        "in": "query",
+        "required": false,
+        "description": "Case-insensitive search over title, pitch and category.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "Category": {
+        "name": "category",
+        "in": "query",
+        "required": false,
+        "description": "Filter to a single category.",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "devtools",
+            "ai",
+            "games",
+            "productivity",
+            "design",
+            "social",
+            "data",
+            "creative",
+            "other"
+          ]
+        }
+      }
+    },
+    "responses": {
+      "Unauthorized": {
+        "description": "Missing or invalid API key.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "Authenticated, but not the owner of this resource.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Resource not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict — e.g. slug already taken, or delete blocked by an active bounty.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ValidationError": {
+        "description": "Request failed validation.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "UnsupportedMediaType": {
+        "description": "Expected multipart/form-data.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "RateLimited": {
+        "description": "Too many requests — slow down.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ProjectList": {
+        "description": "A page of projects.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProjectList"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "errors.api.invalid_body"
+              },
+              "fields": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "Per-field detail, when applicable."
+              }
+            }
+          }
+        }
+      },
+      "ProjectImage": {
+        "type": "object",
+        "required": [
+          "ordinal",
+          "url"
+        ],
+        "properties": {
+          "ordinal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "0 = hero, 1–2 = gallery."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "Project": {
+        "type": "object",
+        "required": [
+          "id",
+          "slug",
+          "owner_handle",
+          "title",
+          "pitch",
+          "body",
+          "url",
+          "repo_url",
+          "category",
+          "upvotes",
+          "reviews",
+          "featured",
+          "created_at",
+          "images",
+          "html_url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "owner_handle": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "pitch": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string",
+            "description": "Long-form markdown."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "repo_url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "devtools",
+              "ai",
+              "games",
+              "productivity",
+              "design",
+              "social",
+              "data",
+              "creative",
+              "other"
+            ]
+          },
+          "upvotes": {
+            "type": "integer"
+          },
+          "reviews": {
+            "type": "integer"
+          },
+          "featured": {
+            "type": "boolean"
+          },
+          "voted": {
+            "type": "boolean",
+            "description": "Whether the caller has upvoted this project. Present on single-project reads (GET /projects/{id}) and the upvote endpoints; omitted from list responses."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "images": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProjectImage"
+            }
+          },
+          "html_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Human-facing project page."
+          }
+        }
+      },
+      "ProjectList": {
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Project"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "required": [
+              "limit",
+              "offset",
+              "has_more"
+            ],
+            "properties": {
+              "limit": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "has_more": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "CreateProjectRequest": {
+        "type": "object",
+        "required": [
+          "title",
+          "pitch",
+          "url"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Project name."
+          },
+          "pitch": {
+            "type": "string",
+            "description": "One-line elevator pitch."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Public http(s) link to the project."
+          },
+          "repo_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional source repo."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "devtools",
+              "ai",
+              "games",
+              "productivity",
+              "design",
+              "social",
+              "data",
+              "creative",
+              "other"
+            ],
+            "default": "other"
+          },
+          "body": {
+            "type": "string",
+            "description": "Optional long-form markdown."
+          },
+          "slug": {
+            "type": "string",
+            "description": "Optional URL slug; derived from the title (auto-suffixed) when omitted. Conflicts return 409."
+          }
+        }
+      },
+      "UpdateProjectRequest": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Any subset of the editable fields.",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "pitch": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "repo_url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "devtools",
+              "ai",
+              "games",
+              "productivity",
+              "design",
+              "social",
+              "data",
+              "creative",
+              "other"
+            ]
+          },
+          "body": {
+            "type": "string"
+          }
+        }
+      },
+      "DeleteResult": {
+        "type": "object",
+        "required": [
+          "deleted",
+          "id"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          }
+        }
+      },
+      "Review": {
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "reviewer_handle",
+          "body",
+          "paid",
+          "created_at",
+          "html_url"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "project_id": {
+            "type": "string"
+          },
+          "reviewer_handle": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "paid": {
+            "type": "boolean",
+            "description": "True if posted via a paid review bounty."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "html_url": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      },
+      "ReviewList": {
+        "type": "object",
+        "required": [
+          "data",
+          "pagination"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Review"
+            }
+          },
+          "pagination": {
+            "type": "object",
+            "required": [
+              "limit",
+              "offset",
+              "has_more"
+            ],
+            "properties": {
+              "limit": {
+                "type": "integer"
+              },
+              "offset": {
+                "type": "integer"
+              },
+              "has_more": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "MyReviewList": {
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Review"
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "project_title"
+                  ],
+                  "properties": {
+                    "project_title": {
+                      "type": "string"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "CreateReviewRequest": {
+        "type": "object",
+        "required": [
+          "body"
+        ],
+        "properties": {
+          "body": {
+            "type": "string",
+            "minLength": 20,
+            "description": "The review text (at least 20 characters)."
+          }
+        }
+      },
+      "VoteResult": {
+        "type": "object",
+        "required": [
+          "id",
+          "upvotes",
+          "voted"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The project id."
+          },
+          "upvotes": {
+            "type": "integer",
+            "description": "The project’s fresh upvote count."
+          },
+          "voted": {
+            "type": "boolean",
+            "description": "Whether the caller now has an active upvote."
+          }
+        }
+      },
+      "Wallet": {
+        "type": "object",
+        "required": [
+          "balance_cents",
+          "balance",
+          "currency",
+          "topup_url",
+          "recent"
+        ],
+        "properties": {
+          "balance_cents": {
+            "type": "integer",
+            "description": "Spendable credit, in cents."
+          },
+          "balance": {
+            "type": "string",
+            "description": "Balance formatted as dollars, e.g. \"$25.00\"."
+          },
+          "currency": {
+            "type": "string",
+            "example": "usd"
+          },
+          "topup_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Open this in a browser to load credit (Stripe Checkout)."
+          },
+          "recent": {
+            "type": "array",
+            "description": "The most recent ledger entries (up to 10).",
+            "items": {
+              "$ref": "#/components/schemas/LedgerEntry"
+            }
+          }
+        }
+      },
+      "LedgerEntry": {
+        "type": "object",
+        "required": [
+          "kind",
+          "amount_cents",
+          "balance_after",
+          "created_at"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "deposit | withdrawal | bounty_fund | bounty_refund | payout"
+          },
+          "amount_cents": {
+            "type": "integer",
+            "description": "Signed: positive = credit, negative = debit."
+          },
+          "balance_after": {
+            "type": "integer"
+          },
+          "memo": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "handle",
+          "is_admin",
+          "is_reviewer",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "handle": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "bio": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "is_reviewer": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}

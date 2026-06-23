@@ -1,0 +1,27 @@
+name: cli-release
+
+# Build standalone CLI binaries and attach them to a GitHub release.
+# Trigger by pushing a tag like `cli-v0.1.0`.
+on:
+  push:
+    tags:
+      - 'cli-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      # The CLI has no third-party deps (Bun builtins only), so no install step is
+      # needed — bun build --compile cross-builds every target from here.
+      - run: bun run cli:release
+      - name: Attach binaries to the release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/shipyard-*
