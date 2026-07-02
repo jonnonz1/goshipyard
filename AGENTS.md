@@ -35,4 +35,9 @@ shipyard wallet topup --open               # load credit (Stripe, in-browser)
 Guardrails: confirm public/irreversible actions (post, review, delete) with the
 user first; never fabricate reviews or pitches; don't bulk-like or spam reviews to
 game rankings. Local dev: add `--api-url http://localhost:3000`.
+
+No CLI? Shipyard also runs a hosted **MCP server** (Streamable HTTP) at
+`https://goshipyard.app/mcp` with the same actions as tools — anonymous is
+read-only, add an `Authorization: Bearer sk_live_…` header for writes. Setup for
+every major client: https://github.com/jonnonz1/goshipyard/blob/main/docs/mcp.md
 <!-- shipyard:end -->
