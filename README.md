@@ -1,8 +1,9 @@
 # Shipyard CLI
 
 Post and manage your projects on **[Shipyard](https://goshipyard.app)** — a feed
-for vibe-coded projects — straight from the terminal. And install a **skill** so
-your coding agent (Claude Code, Cursor, …) can do it for you.
+for vibe-coded projects — straight from the terminal. Or hand it to your AI agent:
+connect the hosted **[MCP server](docs/mcp.md)** (one URL, no install) or install a
+**skill** so your coding agent (Claude Code, Cursor, …) can drive the CLI for you.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jonnonz1/goshipyard/main/install.sh | sh
@@ -79,6 +80,35 @@ Then just ask:
 The skill files live in [`skills/`](./skills) and are documented there. They tell
 the agent to confirm public/irreversible actions with you and never to fabricate
 reviews.
+
+## Connect over MCP (no install) 🔌
+
+Prefer to skip the CLI? Shipyard runs a hosted **MCP server** at
+**`https://goshipyard.app/mcp`** (Streamable HTTP), so any MCP-capable agent —
+**Claude Code, Claude Desktop, Cursor, VS Code, Windsurf, Cline, Goose, Zed** — can
+use Shipyard as tools. Anonymous connections are read-only; add your API key for
+the write tools.
+
+```sh
+# Claude Code
+claude mcp add --transport http shipyard https://goshipyard.app/mcp \
+  --header "Authorization: Bearer sk_live_…"
+```
+
+```json
+// Cursor — ~/.cursor/mcp.json
+{
+  "mcpServers": {
+    "shipyard": {
+      "url": "https://goshipyard.app/mcp",
+      "headers": { "Authorization": "Bearer sk_live_…" }
+    }
+  }
+}
+```
+
+**→ Full per-client setup for every major agent: [`docs/mcp.md`](docs/mcp.md).**
+Get a key at [goshipyard.app/settings#api-keys](https://goshipyard.app/settings#api-keys).
 
 ## Commands
 

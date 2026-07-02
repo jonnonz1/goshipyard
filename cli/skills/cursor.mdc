@@ -52,3 +52,6 @@ shipyard wallet topup --open               # load credit in the browser (Stripe)
 - Don't bulk-like or spam low-content reviews to game rankings.
 - Local dev: pass `--api-url http://localhost:3000`.
 - Help: `shipyard help` or `shipyard <command> help`.
+- No CLI? A hosted MCP server exposes the same actions as tools at
+  `https://goshipyard.app/mcp` (add `Authorization: Bearer sk_live_…`). Setup:
+  https://github.com/jonnonz1/goshipyard/blob/main/docs/mcp.md
