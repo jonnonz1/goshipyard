@@ -66,6 +66,11 @@ and prompts go to stderr, so pipes stay clean):
 shipyard projects list --mine --json | jq '.data[].slug'
 ```
 
+Review tables show a SOURCE column: `automated`, `seeded`, `member`, or
+`unknown` for older servers without provenance. `--json` preserves
+`review_source` and `reviewer_is_seed`. Member is an account classification,
+not a claim of verified identity or hands-on testing; payment is separate.
+
 ## Skills — let your coding agent drive Shipyard
 
 Install a skill so Claude Code, Cursor, or any `AGENTS.md`-aware agent can post and

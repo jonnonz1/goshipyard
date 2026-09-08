@@ -1146,6 +1146,8 @@
           "id",
           "project_id",
           "reviewer_handle",
+          "reviewer_is_seed",
+          "review_source",
           "body",
           "paid",
           "created_at",
@@ -1160,6 +1162,19 @@
           },
           "reviewer_handle": {
             "type": "string"
+          },
+          "reviewer_is_seed": {
+            "type": "boolean",
+            "description": "True for a generated/seed account, not a signed-up member."
+          },
+          "review_source": {
+            "type": "string",
+            "enum": [
+              "automated",
+              "seeded",
+              "member"
+            ],
+            "description": "Account provenance: automated = known bot roster, seeded = other generated account, member = non-seed account. Member does not certify hands-on use or identity verification."
           },
           "body": {
             "type": "string"

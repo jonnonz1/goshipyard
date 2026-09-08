@@ -53,6 +53,9 @@ export interface Review {
   id: string;
   project_id: string;
   reviewer_handle: string;
+  /** Optional when connected to an older server. Never infer provenance from paid/body. */
+  reviewer_is_seed?: boolean;
+  review_source?: 'automated' | 'seeded' | 'member';
   body: string;
   paid: boolean;
   created_at: string;

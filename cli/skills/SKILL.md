@@ -89,6 +89,11 @@ public, so write something **honest and specific** — what you tried, what work
 what you'd change. Never post a review the user hasn't approved, and never
 mass-post low-content praise (it reads as spam and helps no one).
 
+When summarizing reviews, preserve `review_source`: `automated`, `seeded`, or
+`member`. Member means a non-seed account, not verified hands-on testing.
+Missing provenance from an older server means unknown; `paid` does not establish
+a human source. Keep automated/seeded feedback distinct in the summary.
+
 ## 4. Likes (upvotes)
 
 ```sh

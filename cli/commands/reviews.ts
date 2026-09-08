@@ -3,7 +3,8 @@
 // Reviews are the public comments on a project. Any authenticated user can post
 // one (≥20 chars); the project owner is notified. `mine` lists what you've written.
 import { parse, requireAuth, str, num, UsageError, type Values } from '../shared.ts';
-import { print, printJson, info, table, truncate } from '../output.ts';
+import { print, printJson, info } from '../output.ts';
+import { formatReviews, formatMyReviews } from '../review-output.ts';
 import type { ListParams } from '../types.ts';
 
 export async function reviewsCommand(argv: string[]): Promise<void> {
@@ -41,14 +42,7 @@ async function list(argv: string[]): Promise<void> {
     info('No reviews yet.');
     return;
   }
-  print(
-    table(result.data, [
-      { header: 'REVIEWER', get: (r) => '@' + r.reviewer_handle },
-      { header: 'PAID', get: (r) => (r.paid ? 'paid' : '') },
-      { header: 'WHEN', get: (r) => r.created_at.slice(0, 10) },
-      { header: 'REVIEW', get: (r) => truncate(r.body.replace(/\s+/g, ' '), 70) },
-    ]),
-  );
+  print(formatReviews(result.data));
   const pg = result.pagination;
   if (pg.has_more) info(`… more — re-run with --offset ${pg.offset + pg.limit}`);
 }
@@ -81,13 +75,7 @@ async function mine(argv: string[]): Promise<void> {
     info("You haven't written any reviews yet.");
     return;
   }
-  print(
-    table(result.data, [
-      { header: 'PROJECT', get: (r) => truncate(r.project_title, 30) },
-      { header: 'WHEN', get: (r) => r.created_at.slice(0, 10) },
-      { header: 'REVIEW', get: (r) => truncate(r.body.replace(/\s+/g, ' '), 60) },
-    ]),
-  );
+  print(formatMyReviews(result.data));
 }
 
 async function resolveBody(values: Values): Promise<string | undefined> {

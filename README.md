@@ -5,6 +5,9 @@ for vibe-coded projects — straight from the terminal. Or hand it to your AI ag
 connect the hosted **[MCP server](docs/mcp.md)** (one URL, no install) or install a
 **skill** so your coding agent (Claude Code, Cursor, …) can drive the CLI for you.
 
+This is the public CLI/distribution repository. The hosted MCP server is part of
+the Shipyard web application, not a separate server process in this repo.
+
 ```sh
 curl -fsSL https://raw.githubusercontent.com/jonnonz1/goshipyard/main/install.sh | sh
 shipyard login
@@ -41,6 +44,12 @@ cd goshipyard && bun install
 bun run cli --help        # run it
 bun run cli:build         # → ./dist/shipyard (a standalone binary)
 ```
+
+## Review sources
+
+Review tables include a SOURCE column: `automated`, `seeded`, `member`, or
+`unknown` when an older server omits provenance. Member means a non-seed account,
+not verified hands-on testing; payment is shown separately.
 
 ## Log in
 
@@ -186,16 +195,35 @@ Exit codes: `0` success · `2` usage error · `1` API/runtime error.
 ## Develop
 
 ```sh
-bun install
+bun install --frozen-lockfile
 bun run cli <command>     # run from source
 bun test                  # unit + client tests
-bun run check             # typecheck + lint + format + test
+bun run check             # types, lint, format, tests, API contract and version checks
 bun run skills:sync       # regenerate skills/, AGENTS.md, .cursor/ from cli/skills/
 bun run cli:release       # cross-compile binaries for all targets → dist/
 ```
 
-Releases are cut by pushing a `cli-v*` tag: [`.github/workflows/cli-release.yml`](./.github/workflows/cli-release.yml)
-builds the binaries and attaches them to the GitHub release that `install.sh` downloads.
+PRs and main run [CI](./.github/workflows/ci.yml), using Bun 1.3.14, a frozen install,
+dependency audit, full checks, generated-skill consistency and a standalone-binary
+smoke test. API contract checks use the committed snapshot without credentials.
+
+For API changes, update the app first, then copy its generated `openapi.json` here.
+The new provenance fields are additive; this CLI can still read an older server
+and displays unknown when they are absent. Both repositories contain overlapping
+CLI sources: mirror runtime/type/embedded-instruction changes when updating them.
+
+After the corresponding server is deployed, an operator can cut a `cli-v*` tag.
+The [release workflow](./.github/workflows/cli-release.yml) requires the same CI
+checks, verifies that the tag matches both package and CLI versions, and checks
+the **deployed** unauthenticated API contract before building/publishing binaries.
+An unavailable or incompatible server blocks publication; it is not silently skipped.
+No personal API key, production write or billing action is needed for these checks.
+
+```sh
+bun run contract:check
+bun run contract:check --url https://goshipyard.app/api/v1/openapi.json
+bun run release:check
+```
 
 ## License
 
