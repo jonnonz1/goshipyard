@@ -12,7 +12,7 @@ import { walletCommand } from './commands/wallet.ts';
 import { like, unlike } from './commands/social.ts';
 import { skillsCommand } from './commands/skills.ts';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 function topHelp(): void {
   print(

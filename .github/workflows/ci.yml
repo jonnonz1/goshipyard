@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - run: bun audit
+      - run: bun run check
+      - name: Verify generated agent instructions
+        run: |
+          bun run skills:sync
+          git diff --exit-code -- AGENTS.md skills .cursor/rules
+      - name: Build and smoke-test the standalone CLI
+        run: |
+          bun run cli:build
+          test "$(./dist/shipyard --version)" = "$(bun cli/index.ts --version)"
+          ./dist/shipyard --help
