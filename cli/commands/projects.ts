@@ -78,7 +78,7 @@ async function list(argv: string[]): Promise<void> {
       { header: 'TITLE', get: (p) => truncate(p.title, 40) },
       { header: 'CAT', get: (p) => p.category },
       { header: '▲', get: (p) => String(p.upvotes) },
-      { header: 'REV', get: (p) => String(p.reviews) },
+      { header: 'REACT', get: (p) => String(p.reviews) },
       { header: 'CREATED', get: (p) => p.created_at.slice(0, 10) },
     ]),
   );
@@ -108,6 +108,8 @@ async function create(argv: string[]): Promise<void> {
   const { values } = parse(argv, {
     ...CONTENT_OPTIONS,
     slug: { type: 'string' },
+    handle: { type: 'string' },
+    workspace: { type: 'string' },
     hero: { type: 'string' },
     image: { type: 'string', multiple: true },
   });
@@ -121,10 +123,18 @@ async function create(argv: string[]): Promise<void> {
     throw new UsageError('create requires --title, --pitch and --url.');
   }
 
-  const fields: Record<string, string> = { title, pitch, url };
-  if (str(values.category)) fields.category = str(values.category)!;
+  // The API wants a category; `other` keeps -c optional, as it always was here.
+  const fields: Record<string, string> = {
+    title,
+    pitch,
+    url,
+    category: str(values.category) ?? 'other',
+  };
+  if (str(values.handle)) fields.handle = str(values.handle)!;
+  if (str(values.workspace)) fields.workspace = str(values.workspace)!;
   if (str(values['repo-url'])) fields.repo_url = str(values['repo-url'])!;
-  if (str(values.slug)) fields.slug = str(values.slug)!;
+  if (str(values.slug))
+    info('Note: --slug is ignored; Shipyard now takes the address from the title.');
   const body = await resolveBody(values);
   if (body !== undefined) fields.body = body;
 
@@ -166,13 +176,14 @@ async function remove(argv: string[]): Promise<void> {
   if (values.help || !positionals[0]) return print('Usage: shipyard projects delete <id> [-y]');
   const id = positionals[0];
   const client = requireAuth(values);
-  if (!values.yes && !(await confirm(`Delete project ${id}? This cannot be undone.`))) {
+  const ask = `Take ${id} down? It comes off Shipyard; an owner can put it back from the Team page.`;
+  if (!values.yes && !(await confirm(ask))) {
     info('Aborted.');
     return;
   }
-  const res = await client.deleteProject(id);
-  if (values.json) return printJson(res);
-  info(`✓ Deleted ${res.id}`);
+  await client.deleteProject(id);
+  if (values.json) return printJson({ deleted: true, id });
+  info(`✓ Taken down ${id}`);
 }
 
 async function setImages(argv: string[]): Promise<void> {
@@ -228,8 +239,10 @@ async function buildImageForm(
 ): Promise<FormData> {
   const form = new FormData();
   for (const [k, v] of Object.entries(fields)) form.set(k, v);
-  if (hero) form.set('hero', await fileFrom(hero));
-  for (const img of images.slice(0, 2)) form.append('extra', await fileFrom(img));
+  // One field, cover first: the API takes up to three `images`.
+  for (const path of [...(hero ? [hero] : []), ...images.slice(0, 2)]) {
+    form.append('images', await fileFrom(path));
+  }
   return form;
 }
 
@@ -258,7 +271,7 @@ function printDetail(p: Project): void {
     `category  ${p.category}`,
     `url       ${p.url}`,
     p.repo_url ? `repo      ${p.repo_url}` : '',
-    `upvotes   ${p.upvotes}    reviews   ${p.reviews}`,
+    `upvotes   ${p.upvotes}    reactions ${p.reviews}`,
     `created   ${p.created_at}`,
     `page      ${p.html_url}`,
     p.images.length
@@ -276,9 +289,9 @@ function projectsHelp(): void {
       '',
       '  list         List/search projects (--mine, --user HANDLE, --sort, -q, -c, --limit, --offset)',
       '  get          Show one project: shipyard projects get <id>',
-      '  create       Create a project (-t -p -u, optional -c --repo-url --body[-file] --slug --hero --image)',
+      '  create       Create a project (-t -p -u, optional -c --repo-url --body[-file] --hero --image --handle)',
       '  update       Update fields: shipyard projects update <id> [fields]',
-      '  delete       Delete a project: shipyard projects delete <id> [-y]',
+      '  delete       Take a listing down: shipyard projects delete <id> [-y]',
       '  set-images   Replace the image set: set-images <id> [--hero F] [--image F …]',
       '  rm-image     Remove one image: rm-image <id> <ordinal>',
     ].join('\n'),
@@ -296,8 +309,9 @@ function createHelp(): void {
       '  -c, --category    devtools|ai|games|productivity|design|social|data|creative|other',
       '      --repo-url    Source repo URL',
       '      --body        Long-form markdown (or --body-file PATH)',
-      '      --slug        Explicit slug (else derived from the title)',
-      '      --hero FILE   Hero image (ordinal 0)',
+      '      --handle H    Your maker handle; needed once, for your first listing',
+      '      --workspace H Which workspace to list under, if you are in more than one',
+      '      --hero FILE   Cover screenshot (ordinal 0)',
       '      --image FILE  Gallery image (repeatable, up to 2)',
     ].join('\n'),
   );

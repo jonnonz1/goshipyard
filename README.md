@@ -1,7 +1,8 @@
 # Shipyard CLI
 
-Post and manage your projects on **[Shipyard](https://goshipyard.app)** — a feed
-for vibe-coded projects — straight from the terminal. Or hand it to your AI agent:
+List and manage your apps on **[Shipyard](https://goshipyard.app)** — a directory
+of AI-built apps, with a board that finds where people are asking for what yours
+does — straight from the terminal. Or hand it to your AI agent:
 connect the hosted **[MCP server](docs/mcp.md)** (one URL, no install) or install a
 **skill** so your coding agent (Claude Code, Cursor, …) can drive the CLI for you.
 
@@ -14,9 +15,9 @@ shipyard login
 shipyard projects create -t "Foglight" -p "Maps for makers" -u https://foglight.app
 ```
 
-- 🚀 **Ship in one command** — post a project with a title, pitch, link and screenshot.
-- 💬 **Reviews & likes** — read the feedback on your launch, post honest reviews, upvote what you rate.
-- 💳 **Wallet** — check your credit and fund paid review bounties for fast, vetted feedback.
+- 🚀 **Ship in one command** — list an app with a title, pitch, link and screenshot. Listing is free.
+- 🧭 **The board** — threads where people are asking for what your app does, each with a suggested reply. You post it yourself; Shipyard never posts for you. (Paid plan.)
+- 💬 **Reactions & likes** — read what people said about a listing, upvote what you rate.
 - 🤖 **Agent-native** — `shipyard skills install` teaches your AI agent the whole workflow.
 - 📦 **Zero dependencies** — a single self-contained binary (built with [Bun](https://bun.sh)). No Node, no npm tree.
 
@@ -45,17 +46,18 @@ bun run cli --help        # run it
 bun run cli:build         # → ./dist/shipyard (a standalone binary)
 ```
 
-## Review sources
+## Where reactions come from
 
-Review tables include a SOURCE column: `automated`, `seeded`, `member`, or
-`unknown` when an older server omits provenance. Member means a non-seed account,
-not verified hands-on testing; payment is shown separately.
+The reactions table includes a KIND column: `seeded` (written by one of Shipyard's
+own seed accounts, brought over from v1), `member` (not seeded), or `unknown` when
+the server sends no provenance. Member means a non-seed account, not verified
+hands-on use.
 
 ## Log in
 
 Shipyard authenticates with a **personal API key**:
 
-1. Open **[goshipyard.app/settings](https://goshipyard.app/settings) → API keys → New key** and copy the `sk_live_…` value.
+1. Open **[goshipyard.app/account](https://goshipyard.app/account#api-keys) → API keys**, make a key and copy the `sk_live_…` value.
 2. Save it to the CLI:
 
    ```sh
@@ -66,12 +68,12 @@ Shipyard authenticates with a **personal API key**:
 
 The key is stored at `~/.config/shipyard/config.json` (chmod 600). Override per-command
 with `--api-key`/`$SHIPYARD_API_KEY`, and target a different server with
-`--api-url`/`$SHIPYARD_URL` (e.g. `--api-url http://localhost:3000` for local dev).
+`--api-url`/`$SHIPYARD_URL` (e.g. `--api-url http://localhost:4001` for local dev).
 
 ## Let your coding agent drive it 🤖
 
-Install the Shipyard skill once and your agent can post, review, and manage
-projects on request:
+Install the Shipyard skill once and your agent can list and manage your apps and
+work your board on request:
 
 ```sh
 shipyard skills install            # Claude Code   → ~/.claude/skills/shipyard
@@ -82,21 +84,21 @@ shipyard skills install --all      # all three
 
 Then just ask:
 
-> *"Post this project to Shipyard with a screenshot."*
-> *"Summarize the reviews on my launch and suggest fixes."*
-> *"How do I get more reviews?"* → it'll suggest funding a review bounty.
+> *"List this app on Shipyard with a screenshot."*
+> *"What's on my Shipyard board today?"* → it shows you the threads and a suggested reply for each.
+> *"I posted that one, here's the link."* → it marks the card so replies are watched.
 
 The skill files live in [`skills/`](./skills) and are documented there. They tell
-the agent to confirm public/irreversible actions with you and never to fabricate
-reviews.
+the agent to confirm public actions with you, never to fabricate anything, and never
+to post a reply for you.
 
 ## Connect over MCP (no install) 🔌
 
 Prefer to skip the CLI? Shipyard runs a hosted **MCP server** at
 **`https://goshipyard.app/mcp`** (Streamable HTTP), so any MCP-capable agent —
 **Claude Code, Claude Desktop, Cursor, VS Code, Windsurf, Cline, Goose, Zed** — can
-use Shipyard as tools. Anonymous connections are read-only; add your API key for
-the write tools.
+use Shipyard as tools. Anonymous connections can browse the directory; add your API
+key for everything else.
 
 ```sh
 # Claude Code
@@ -117,33 +119,34 @@ claude mcp add --transport http shipyard https://goshipyard.app/mcp \
 ```
 
 **→ Full per-client setup for every major agent: [`docs/mcp.md`](docs/mcp.md).**
-Get a key at [goshipyard.app/settings#api-keys](https://goshipyard.app/settings#api-keys).
+Get a key at [goshipyard.app/account#api-keys](https://goshipyard.app/account#api-keys).
 
 ## Commands
 
 ```
 shipyard login | logout | whoami
 
-# Projects
+# Listings
 shipyard projects create  -t TITLE -p PITCH -u URL [-c CATEGORY] [--repo-url R]
-                          [--body MD | --body-file F] [--slug S] [--hero IMG] [--image IMG …]
+                          [--body MD | --body-file F] [--hero IMG] [--image IMG …]
+                          [--handle H]       # your maker handle, on your first listing
+                          [--workspace H]    # if you are in more than one workspace
 shipyard projects list    [--mine | --user HANDLE] [--sort new|top] [-q TEXT] [-c CAT] [--limit N] [--offset N]
 shipyard projects get     <id>
 shipyard projects update  <id> [content flags]
-shipyard projects delete  <id> [-y]
+shipyard projects delete  <id> [-y]          # takes it down; an owner can put it back on the site
 shipyard projects set-images <id> [--hero IMG] [--image IMG …]
 shipyard projects rm-image   <id> <ordinal>
 
-# Reviews (comments)
-shipyard reviews list     <id>
-shipyard reviews add      <id> -b "honest, ≥20 chars" | --body-file F
-shipyard reviews mine
+# Reactions (what people said)
+shipyard reactions        <id>
 
 # Likes (upvotes)
 shipyard like <id>        |  shipyard unlike <id>
 
-# Wallet
-shipyard wallet           |  shipyard wallet topup [--open]
+# The board (paid plan)
+shipyard opportunities list <id> [--view live|posted|dismissed]
+shipyard opportunities mark <card-id> posted [--reply-url URL] | dismissed | live
 
 # Agent skills
 shipyard skills install [--claude | --cursor | --agents | --all]
@@ -164,22 +167,24 @@ shipyard projects list --mine --json | jq '.data[] | {slug, upvotes, reviews}'
 ## Examples
 
 ```sh
-# Ship a project with a hero screenshot
+# List an app with a cover screenshot
 shipyard projects create -t Foglight -p "See where your users get lost" \
   -u https://foglight.app -c devtools --repo-url https://github.com/acme/foglight \
   --hero ./screenshot.png
 
-# Read the feedback, then thank a reviewer with a like on their project
-shipyard reviews list <id>
-shipyard like <their-project-id>
+# Read what people said about it
+shipyard reactions <id>
 
-# Post an honest review on something you tried
-shipyard reviews add <id> -b "Tried it on a 2k-node graph — clustering held up, legend overlapped on mobile."
+# See the threads worth answering, with a suggested reply for each
+shipyard opportunities list <id>
 
-# Check credit and open the top-up page to fund a review bounty
-shipyard wallet
-shipyard wallet topup --open
+# After you post a reply yourself, record it so Shipyard watches for answers
+shipyard opportunities mark <card-id> posted --reply-url https://news.ycombinator.com/item?id=123
 ```
+
+`shipyard reviews list` still works as an alias for `reactions`. Writing reviews, the
+wallet and review bounties ended with the first version of Shipyard; those commands
+now say so.
 
 ## How it works
 
@@ -187,8 +192,7 @@ The CLI is a thin, typed client over Shipyard's public REST API at
 `https://goshipyard.app/api/v1`. Auth is a single `Authorization: Bearer sk_live_…`
 header (no cookies), so it's safe in scripts and CI. The full request/response
 contract is [`openapi.json`](./openapi.json) — served live at
-[`/api/v1/openapi.json`](https://goshipyard.app/api/v1/openapi.json) and browsable
-at [`/api/v1/docs`](https://goshipyard.app/api/v1/docs).
+[`/api/v1/openapi.json`](https://goshipyard.app/api/v1/openapi.json).
 
 Exit codes: `0` success · `2` usage error · `1` API/runtime error.
 
@@ -208,9 +212,8 @@ dependency audit, full checks, generated-skill consistency and a standalone-bina
 smoke test. API contract checks use the committed snapshot without credentials.
 
 For API changes, update the app first, then copy its generated `openapi.json` here.
-The new provenance fields are additive; this CLI can still read an older server
-and displays unknown when they are absent. Both repositories contain overlapping
-CLI sources: mirror runtime/type/embedded-instruction changes when updating them.
+Provenance fields are optional to this CLI: it displays unknown when a server leaves
+them out. This repository is the CLI's only home; the app no longer carries a copy.
 
 After the corresponding server is deployed, an operator can cut a `cli-v*` tag.
 The [release workflow](./.github/workflows/cli-release.yml) requires the same CI

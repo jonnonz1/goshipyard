@@ -1,7 +1,7 @@
 # shipyard CLI
 
-Post and manage your [Shipyard](https://goshipyard.app) projects from the
-terminal — and let your coding agent do it for you. A small, zero-dependency
+List your app on [Shipyard](https://goshipyard.app), manage the listing and work
+its board from the terminal — and let your coding agent do it for you. A small, zero-dependency
 TypeScript/Bun tool over the public `/api/v1` REST API.
 
 ## Install
@@ -14,7 +14,7 @@ Or run from source: `bun run cli <command>`.
 
 ## Authenticate
 
-Create a personal API key in the web app (**[Settings → API keys](https://goshipyard.app/settings)**), then:
+Create a personal API key in the web app (**[Account → API keys](https://goshipyard.app/account#api-keys)**), then:
 
 ```sh
 shipyard login                       # paste the key when prompted
@@ -31,7 +31,7 @@ Resolution order — **flag › env › config file › default**:
 | API key | `--api-key` | `SHIPYARD_API_KEY` | (from `login`) |
 | Base URL | `--api-url` | `SHIPYARD_URL` | `https://goshipyard.app` |
 
-> Developing against a local server? Add `--api-url http://localhost:3000`.
+> Developing against a local server? Add `--api-url http://localhost:4001`.
 
 ## Commands
 
@@ -40,21 +40,19 @@ shipyard login | logout | whoami
 
 shipyard projects list      [--mine | --user HANDLE] [--sort new|top] [-q TEXT] [-c CAT] [--limit N] [--offset N]
 shipyard projects get       <id>
-shipyard projects create    -t TITLE -p PITCH -u URL [-c CAT] [--repo-url R] [--body B | --body-file F] [--slug S] [--hero F] [--image F …]
+shipyard projects create    -t TITLE -p PITCH -u URL [-c CAT] [--repo-url R] [--body B | --body-file F] [--hero F] [--image F …] [--handle H] [--workspace H]
 shipyard projects update    <id> [same content flags]
-shipyard projects delete    <id> [-y]
+shipyard projects delete    <id> [-y]                        # takes it down; an owner can put it back on the site
 shipyard projects set-images <id> [--hero F] [--image F …]   # replaces the whole set
-shipyard projects rm-image  <id> <ordinal>                   # 0 = hero, 1–2 = gallery
+shipyard projects rm-image  <id> <ordinal>                   # 0 = cover, 1–2 = the rest
 
-shipyard reviews list       <id> [--limit N] [--offset N]    # comments on a project
-shipyard reviews add        <id> -b "honest, ≥20 chars" | --body-file F
-shipyard reviews mine                                        # reviews you've written
+shipyard reactions          <id> [--limit N] [--offset N]    # what people said about a listing
 
 shipyard like               <id>                             # upvote (idempotent)
 shipyard unlike             <id>
 
-shipyard wallet                                              # credit balance + ledger
-shipyard wallet topup       [--open]                         # load credit (Stripe, in-browser)
+shipyard opportunities list <id> [--view live|posted|dismissed]   # the board (paid plan)
+shipyard opportunities mark <card-id> posted [--reply-url URL] | dismissed | live
 
 shipyard skills install     [--claude | --cursor | --agents | --all]   # teach your agent the CLI
 ```
@@ -66,15 +64,23 @@ and prompts go to stderr, so pipes stay clean):
 shipyard projects list --mine --json | jq '.data[].slug'
 ```
 
-Review tables show a SOURCE column: `automated`, `seeded`, `member`, or
-`unknown` for older servers without provenance. `--json` preserves
-`review_source` and `reviewer_is_seed`. Member is an account classification,
-not a claim of verified identity or hands-on testing; payment is separate.
+The reactions table shows a KIND column: `seeded` (one of Shipyard's own seed
+accounts, brought over from v1), `member` (not seeded), or `unknown` when the server
+sends no provenance. `--json` preserves `review_source` and `reviewer_is_seed`. Member
+is an account classification, not a claim of verified identity or hands-on use.
+
+The board lists threads where people are asking about what your app does, each with a
+suggested first reply. Shipyard never posts for you: post from your own account, then
+`mark` the card `posted` with the link to your reply so answers are watched. The board
+is a [paid plan](https://goshipyard.app/pricing); without one these commands say so.
+
+`shipyard reviews list` still works as an alias for `reactions`. Writing reviews, the
+wallet and review bounties ended with the first version of Shipyard.
 
 ## Skills — let your coding agent drive Shipyard
 
-Install a skill so Claude Code, Cursor, or any `AGENTS.md`-aware agent can post and
-manage your projects on request:
+Install a skill so Claude Code, Cursor, or any `AGENTS.md`-aware agent can list and
+manage your apps on request:
 
 ```sh
 shipyard skills install            # Claude Code skill → ~/.claude/skills/shipyard
@@ -82,8 +88,8 @@ shipyard skills install --cursor   # Cursor rule → ./.cursor/rules/shipyard.md
 shipyard skills install --agents   # append a section to ./AGENTS.md
 ```
 
-Then just tell your agent *"post this project to Shipyard"* or *"show me the reviews
-on my launch"* — it runs the CLI for you.
+Then just tell your agent *"list this app on Shipyard"* or *"what's on my Shipyard
+board?"* — it runs the CLI for you.
 
 ## Examples
 
@@ -91,10 +97,9 @@ on my launch"* — it runs the CLI for you.
 shipyard projects create -t Foglight -p "Maps for makers" -u https://foglight.app \
   -c devtools --hero ./hero.png
 shipyard projects list --mine
-shipyard reviews list <id>
-shipyard reviews add <id> -b "Tried it on a 2k-node graph — clustering held up nicely."
+shipyard reactions <id>
 shipyard like <id>
-shipyard wallet
+shipyard opportunities list <id>
 ```
 
 ## Build a binary
@@ -105,4 +110,4 @@ bun run cli:release     # → dist/shipyard-<os>-<arch> for all targets
 ```
 
 The full request/response contract is the repo's `openapi.json` (served live at
-`/api/v1/openapi.json`, browsable at `/api/v1/docs`).
+`/api/v1/openapi.json`).

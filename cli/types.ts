@@ -30,6 +30,7 @@ export interface Project {
   repo_url: string;
   category: string;
   upvotes: number;
+  /** Reactions on the listing. */
   reviews: number;
   featured: boolean;
   voted?: boolean; // present on single-project reads + upvote responses
@@ -49,26 +50,24 @@ export interface ProjectList {
   pagination: Pagination;
 }
 
-export interface Review {
+/** Something said about a listing: a reply the maker chose to show, or one brought over from v1. */
+export interface Reaction {
   id: string;
   project_id: string;
-  reviewer_handle: string;
-  /** Optional when connected to an older server. Never infer provenance from paid/body. */
+  /** Where it was said, e.g. "Hacker News" or "r/German". */
+  source: string;
+  source_url: string | null;
+  body: string;
+  sentiment: string | null;
+  /** Optional when connected to an older server. Never infer provenance from the body. */
   reviewer_is_seed?: boolean;
   review_source?: 'automated' | 'seeded' | 'member';
-  body: string;
-  paid: boolean;
   created_at: string;
-  html_url: string;
 }
 
-export interface ReviewList {
-  data: Review[];
+export interface ReactionList {
+  data: Reaction[];
   pagination: Pagination;
-}
-
-export interface MyReview extends Review {
-  project_title: string;
 }
 
 export interface VoteResult {
@@ -77,29 +76,44 @@ export interface VoteResult {
   voted: boolean;
 }
 
-export interface LedgerEntry {
-  kind: string;
-  amount_cents: number;
-  balance_after: number;
-  memo: string;
-  created_at: string;
-}
+export type OpportunityView = 'live' | 'posted' | 'dismissed';
+export type OpportunityStatus = 'posted' | 'dismissed' | 'live';
 
-export interface Wallet {
-  balance_cents: number;
-  balance: string;
-  currency: string;
-  topup_url: string;
-  recent: LedgerEntry[];
-}
-
-export interface DeleteResult {
-  deleted: boolean;
+/** A board card: a thread where people are asking about what the app does. */
+export interface Opportunity {
   id: string;
+  project_id: string;
+  type: string;
+  channel: string;
+  source: string;
+  /** The thread. */
+  url: string;
+  title: string;
+  /** Why it fits the app. */
+  why: string;
+  /** A suggested first reply; it never names the app. */
+  draft: string;
+  leverage: number;
+  status: string;
+  /** Tagged link to use if a reply asks for the app. */
+  link: string;
+  reply_url: string | null;
+  thread_at: string | null;
+  expires_at: string | null;
+  decided_at: string | null;
+}
+
+export interface OpportunityList {
+  data: Opportunity[];
+}
+
+export interface OpportunityMark {
+  id: string;
+  status: OpportunityStatus;
 }
 
 export interface ApiErrorBody {
-  error: { code: string; fields?: Record<string, string> };
+  error: { code: string; fields?: Record<string, string>; message?: string };
 }
 
 export interface CreateProjectInput {
