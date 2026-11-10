@@ -7,17 +7,17 @@
 import type {
   ApiErrorBody,
   CreateProjectInput,
-  DeleteResult,
   ListParams,
   MeUser,
-  MyReview,
+  OpportunityList,
+  OpportunityMark,
+  OpportunityStatus,
+  OpportunityView,
   Project,
   ProjectList,
-  Review,
-  ReviewList,
+  ReactionList,
   UpdateProjectInput,
   VoteResult,
-  Wallet,
 } from './types.ts';
 
 export type FetchLike = (input: Request) => Promise<Response> | Response;
@@ -27,15 +27,21 @@ const MESSAGES: Record<string, string> = {
   'errors.api.forbidden': "You don't own that project.",
   'errors.api.not_found': 'Not found.',
   'errors.api.slug_taken': 'That slug is already taken — choose another with --slug.',
-  'errors.api.project_has_active_bounty':
-    "Can't delete: an active bounty still holds escrow on this project.",
-  'errors.api.review_too_short': 'Your review is too short — write at least 20 characters.',
+  'errors.api.subscription_required':
+    'The board needs a subscription — see https://goshipyard.app/billing.',
+  'errors.api.retired': 'That ended with Shipyard v1 and is no longer available.',
+  'errors.api.invalid_body': 'Shipyard refused that',
   'errors.api.unsupported_media_type': 'Images must be sent as multipart/form-data.',
   'errors.api.rate_limited': 'Rate limited — wait a moment and try again.',
 };
 
-function humanMessage(status: number, code: string, fields?: Record<string, string>): string {
-  const base = MESSAGES[code] || `API error (${status} ${code})`;
+function humanMessage(
+  status: number,
+  code: string,
+  fields?: Record<string, string>,
+  message?: string,
+): string {
+  const base = MESSAGES[code] || message || `API error (${status} ${code})`;
   const detail =
     fields && Object.keys(fields).length
       ? ' (' +
@@ -51,8 +57,8 @@ export class ShipyardApiError extends Error {
   status: number;
   code: string;
   fields?: Record<string, string>;
-  constructor(status: number, code: string, fields?: Record<string, string>) {
-    super(humanMessage(status, code, fields));
+  constructor(status: number, code: string, fields?: Record<string, string>, message?: string) {
+    super(humanMessage(status, code, fields, message));
     this.name = 'ShipyardApiError';
     this.status = status;
     this.code = code;
@@ -108,6 +114,7 @@ export class ShipyardClient {
         res.status,
         err?.error?.code ?? 'errors.api.unknown',
         err?.error?.fields,
+        err?.error?.message,
       );
     }
     return data as T;
@@ -151,7 +158,8 @@ export class ShipyardClient {
     return this.request('PATCH', `/api/v1/projects/${encodeURIComponent(id)}`, { json: patch });
   }
 
-  deleteProject(id: string): Promise<DeleteResult> {
+  // A take-down: the server answers 204 and an owner can put the listing back on the site.
+  deleteProject(id: string): Promise<void> {
     return this.request('DELETE', `/api/v1/projects/${encodeURIComponent(id)}`);
   }
 
@@ -163,22 +171,13 @@ export class ShipyardClient {
     return this.request('DELETE', `/api/v1/projects/${encodeURIComponent(id)}/images/${ordinal}`);
   }
 
-  // --- reviews (comments) ---------------------------------------------------
+  // --- reactions -----------------------------------------------------------
 
-  listReviews(id: string, p: ListParams = {}): Promise<ReviewList> {
+  // The path keeps v1's name: reactions are what the API used to call reviews.
+  listReactions(id: string, p: ListParams = {}): Promise<ReactionList> {
     return this.request('GET', `/api/v1/projects/${encodeURIComponent(id)}/reviews`, {
       query: { limit: p.limit, offset: p.offset },
     });
-  }
-
-  createReview(id: string, body: string): Promise<Review> {
-    return this.request('POST', `/api/v1/projects/${encodeURIComponent(id)}/reviews`, {
-      json: { body },
-    });
-  }
-
-  myReviews(): Promise<{ data: MyReview[] }> {
-    return this.request('GET', '/api/v1/me/reviews');
   }
 
   // --- upvotes ("likes") ----------------------------------------------------
@@ -191,9 +190,21 @@ export class ShipyardClient {
     return this.request('DELETE', `/api/v1/projects/${encodeURIComponent(id)}/upvote`);
   }
 
-  // --- wallet ---------------------------------------------------------------
+  // --- the board -----------------------------------------------------------
 
-  wallet(): Promise<Wallet> {
-    return this.request('GET', '/api/v1/me/wallet');
+  listOpportunities(id: string, view?: OpportunityView): Promise<OpportunityList> {
+    return this.request('GET', `/api/v1/projects/${encodeURIComponent(id)}/opportunities`, {
+      query: { view },
+    });
+  }
+
+  markOpportunity(
+    id: string,
+    status: OpportunityStatus,
+    replyUrl?: string,
+  ): Promise<OpportunityMark> {
+    return this.request('POST', `/api/v1/opportunities/${encodeURIComponent(id)}/status`, {
+      json: replyUrl ? { status, reply_url: replyUrl } : { status },
+    });
   }
 }

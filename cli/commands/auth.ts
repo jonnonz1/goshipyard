@@ -12,7 +12,7 @@ export async function login(argv: string[]): Promise<void> {
   const { baseUrl } = clientFrom(values); // resolves the base URL; key may be absent
   let apiKey = str(values['api-key']);
   if (!apiKey) {
-    info(`Create an API key at ${baseUrl}/settings (API keys), then paste it below.`);
+    info(`Create an API key at ${baseUrl}/account (API keys), then paste it below.`);
     apiKey = await readSecret('API key: ');
   }
   if (!apiKey) throw new UsageError('No API key provided.');
@@ -30,7 +30,7 @@ export async function login(argv: string[]): Promise<void> {
 
   saveConfig({ apiKey, apiUrl: baseUrl });
   if (values.json) return printJson({ logged_in: true, handle: me.handle, api_url: baseUrl });
-  info(`✓ Logged in as @${me.handle} — saved to ${configPath()}`);
+  info(`✓ Logged in as ${me.handle ? '@' + me.handle : me.email} — saved to ${configPath()}`);
 }
 
 export async function logout(argv: string[]): Promise<void> {
@@ -46,8 +46,10 @@ export async function whoami(argv: string[]): Promise<void> {
   if (values.help) return print('Usage: shipyard whoami');
   const me = await requireAuth(values).me();
   if (values.json) return printJson(me);
-  const tags = [me.is_admin ? 'admin' : '', me.is_reviewer ? 'reviewer' : ''].filter(Boolean);
-  print(`@${me.handle}  <${me.email}>${tags.length ? '  [' + tags.join(', ') + ']' : ''}`);
+  const tags = [me.is_admin ? 'admin' : ''].filter(Boolean);
+  // No handle until the first listing, which starts the account's workspace.
+  const who = me.handle ? `@${me.handle}` : '(no handle yet — your first listing sets it)';
+  print(`${who}  <${me.email}>${tags.length ? '  [' + tags.join(', ') + ']' : ''}`);
 }
 
 function loginHelp(): void {
@@ -56,11 +58,11 @@ function loginHelp(): void {
       'Usage: shipyard login [--api-url URL] [--api-key KEY]',
       '',
       "  Authenticate the CLI with a personal API key. Without --api-key you'll be",
-      '  prompted to paste one (create it at <api-url>/settings → API keys). The key',
+      '  prompted to paste one (create it at <api-url>/account → API keys). The key',
       '  is validated against the server and saved to ~/.config/shipyard/config.json.',
       '',
       '  Until the v2 cutover, point at your server, e.g.:',
-      '    shipyard login --api-url http://localhost:3000',
+      '    shipyard login --api-url http://localhost:4001',
     ].join('\n'),
   );
 }

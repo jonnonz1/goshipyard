@@ -61,13 +61,13 @@ describe('request building', () => {
     });
   });
 
-  test('createReview hits the reviews endpoint with the body', async () => {
-    const s = stub(() => ({ status: 201, body: { id: 'r1', reviewer_handle: 'jo' } }));
-    await client(s.fetch).createReview('p1', 'a sufficiently long and honest review');
-    const req = s.calls[0]!;
-    expect(req.method).toBe('POST');
-    expect(new URL(req.url).pathname).toBe('/api/v1/projects/p1/reviews');
-    expect(await req.json()).toEqual({ body: 'a sufficiently long and honest review' });
+  test('listReactions reads the reviews path, which keeps its v1 name', async () => {
+    const s = stub(() => ({ body: { data: [], pagination: {} } }));
+    await client(s.fetch).listReactions('p1', { limit: 5 });
+    const url = new URL(s.calls[0]!.url);
+    expect(s.calls[0]!.method).toBe('GET');
+    expect(url.pathname).toBe('/api/v1/projects/p1/reviews');
+    expect(url.searchParams.get('limit')).toBe('5');
   });
 
   test('upvote / removeUpvote use POST / DELETE', async () => {
@@ -79,13 +79,26 @@ describe('request building', () => {
     expect(new URL(s.calls[0]!.url).pathname).toBe('/api/v1/projects/p1/upvote');
   });
 
-  test('wallet reads /me/wallet', async () => {
-    const s = stub(() => ({
-      body: { balance_cents: 0, balance: '$0.00', currency: 'usd', topup_url: 'x', recent: [] },
-    }));
-    const w = await client(s.fetch).wallet();
-    expect(w.balance).toBe('$0.00');
-    expect(new URL(s.calls[0]!.url).pathname).toBe('/api/v1/me/wallet');
+  test('listOpportunities asks for a view only when given one', async () => {
+    const s = stub(() => ({ body: { data: [] } }));
+    await client(s.fetch).listOpportunities('p1');
+    await client(s.fetch).listOpportunities('p1', 'posted');
+    expect(new URL(s.calls[0]!.url).pathname).toBe('/api/v1/projects/p1/opportunities');
+    expect(new URL(s.calls[0]!.url).searchParams.has('view')).toBe(false);
+    expect(new URL(s.calls[1]!.url).searchParams.get('view')).toBe('posted');
+  });
+
+  test('markOpportunity posts the status, with the reply link when there is one', async () => {
+    const s = stub(() => ({ body: { id: 'o1', status: 'posted' } }));
+    await client(s.fetch).markOpportunity('o1', 'posted', 'https://news.ycombinator.com/item?id=1');
+    await client(s.fetch).markOpportunity('o1', 'dismissed');
+    expect(s.calls[0]!.method).toBe('POST');
+    expect(new URL(s.calls[0]!.url).pathname).toBe('/api/v1/opportunities/o1/status');
+    expect(await s.calls[0]!.json()).toEqual({
+      status: 'posted',
+      reply_url: 'https://news.ycombinator.com/item?id=1',
+    });
+    expect(await s.calls[1]!.json()).toEqual({ status: 'dismissed' });
   });
 
   test('path ids are URL-encoded', async () => {
@@ -117,9 +130,13 @@ describe('error handling', () => {
     expect(new ShipyardApiError(403, 'errors.api.forbidden').message).toBe(
       "You don't own that project.",
     );
-    expect(new ShipyardApiError(422, 'errors.api.review_too_short').message).toContain(
-      'at least 20 characters',
+    expect(new ShipyardApiError(402, 'errors.api.subscription_required').message).toContain(
+      'needs a subscription',
     );
+    expect(new ShipyardApiError(410, 'errors.api.retired').message).toContain('ended with');
+    expect(
+      new ShipyardApiError(422, 'errors.api.other', undefined, 'Said by the server').message,
+    ).toBe('Said by the server');
     expect(
       new ShipyardApiError(422, 'errors.api.invalid_url', { url: 'must be http(s)' }).message,
     ).toContain('url: must be http(s)');

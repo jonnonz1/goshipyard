@@ -26,9 +26,9 @@ const agents = `# AGENTS.md
 
 Guidance for AI coding agents. This repository is the **Shipyard CLI** — a
 command-line tool (and installable agent skills) for [Shipyard](https://goshipyard.app),
-a feed for vibe-coded projects.
+a directory of AI-built apps with a board that finds where people are asking for them.
 
-If you are helping a user who wants to post or manage a project on Shipyard, use
+If you are helping a user who wants to list or manage an app on Shipyard, use
 the \`shipyard\` CLI as described below.
 
 ${agentsSection.trim()}\n`;

@@ -1,7 +1,7 @@
 # Shipyard agent skills
 
 Drop-in skills that teach a coding agent to drive the `shipyard` CLI — so you can
-just say *"post this project to Shipyard"* or *"show me the reviews on my launch"*
+just say *"list this app on Shipyard"* or *"what's on my Shipyard board?"*
 and it does the rest.
 
 > These files are generated from [`../cli/skills/`](../cli/skills) (the single
@@ -38,8 +38,8 @@ Then start a fresh agent session so it picks up the skill.
 
 ## What the skill can do
 
-Post a project, list/update/delete your postings, read and write reviews
-(comments), like (upvote) projects, check your wallet balance, and recommend
-loading credit to fund paid review bounties — all by running `shipyard` commands.
-It's told to confirm public or irreversible actions with you first and never to
-fabricate reviews.
+List an app, update or take down your listings, read the reactions on one, like
+(upvote) apps, and work your board: show you the threads where people are asking for
+what your app does, each with a suggested reply, and mark what you posted — all by
+running `shipyard` commands. It's told to confirm public actions with you first, never
+to fabricate anything, and never to post a reply for you.

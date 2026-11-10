@@ -1,13 +1,14 @@
 ---
-description: Post & manage projects on Shipyard (goshipyard.app) via the `shipyard` CLI — launch projects, read/write reviews, like (upvote), and manage wallet credit. Use whenever the user wants to ship/post/launch to Shipyard, see their postings, get or give reviews/feedback, or fund review bounties.
+description: List & manage apps on Shipyard (goshipyard.app) via the `shipyard` CLI — list an app, edit listings, read reactions, upvote, and work the board of threads to answer. Use whenever the user wants to ship/post/launch to Shipyard, see their listings or reactions, or find where people are asking for what their app does.
 alwaysApply: false
 ---
 
 # Shipyard CLI
 
-[Shipyard](https://goshipyard.app) is a feed for vibe-coded projects. Drive it with
-the `shipyard` CLI (public API at `https://goshipyard.app/api/v1`, authed by the
-user's personal API key). Add `--json` to any command for parseable output.
+[Shipyard](https://goshipyard.app) is a directory of AI-built apps, with a paid board
+that finds threads where people are asking for what an app does. Drive it with the
+`shipyard` CLI (public API at `https://goshipyard.app/api/v1`, authed by the user's
+personal API key). Add `--json` to any command for parseable output.
 
 ## First, confirm auth
 
@@ -16,48 +17,49 @@ shipyard whoami            # prints @handle — if so, you're ready
 ```
 
 - `command not found` → install: `curl -fsSL https://raw.githubusercontent.com/jonnonz1/goshipyard/main/install.sh | sh`
-- "Not authenticated" → user creates a key at https://goshipyard.app/settings (API keys), then `shipyard login` (paste it). Never invent a key.
+- "Not authenticated" → user creates a key at https://goshipyard.app/account (API keys), then `shipyard login` (paste it). Never invent a key.
 
 ## Common tasks
 
 ```sh
-# Post a project (title, pitch, url required)
+# List an app (title, pitch, url required)
 shipyard projects create -t "Foglight" -p "Maps for makers" -u https://foglight.app -c devtools --hero ./shot.png
 
-# List / inspect / edit your postings
+# List / inspect / edit your listings
 shipyard projects list --mine
-shipyard projects get <id>                 # upvotes + review counts
+shipyard projects get <id>                 # upvotes + reaction counts
 shipyard projects update <id> -p "Sharper pitch"
-shipyard projects delete <id> -y
+shipyard projects delete <id> -y           # takes it down; an owner can put it back on the site
 
-# Reviews (comments) — read & write (≥20 chars, honest, specific)
-shipyard reviews list <id>
-shipyard reviews add <id> -b "Tried it on a big graph — clustering held up, legend overlapped on mobile."
-shipyard reviews mine
+# Reactions — what people said (read-only)
+shipyard reactions <id>
 
 # Likes (upvotes) — idempotent
 shipyard like <id>
 shipyard unlike <id>
 
-# Wallet — credit funds paid review bounties (fastest path to vetted reviews)
-shipyard wallet
-shipyard wallet topup --open               # load credit in the browser (Stripe)
+# The board (paid plan) — threads to answer, each with a suggested reply
+shipyard opportunities list <id>
+shipyard opportunities mark <card-id> posted --reply-url URL
+shipyard opportunities mark <card-id> dismissed
 ```
 
 ## Rules
 
-- Parse `--json`; don't scrape tables. Non-zero exit = failure.
-- Preserve `review_source` when summarizing: `automated`, `seeded`, or `member`.
-  Member is not verified hands-on testing. Missing provenance means unknown;
-  payment alone does not establish a human source.
-- Confirm public/irreversible actions (post, review, delete) with the user first.
-- Never fabricate reviews/pitches/results — write from what was actually built.
-- Don't bulk-like or spam low-content reviews to game rankings.
-- Local dev: pass `--api-url http://localhost:3000`.
+- Parse `--json`; don't scrape output. Non-zero exit = failure.
+- Shipyard never posts for anyone, and neither do you. Show the user the thread and
+  the suggested reply; they post it from their own account; then mark the card posted
+  with the link to their reply.
+- Preserve `review_source` when summarizing reactions: `seeded` or `member`. Seeded
+  ones came from Shipyard's own seed accounts. Member is not proof of hands-on use.
+  Missing provenance means unknown.
+- Confirm public actions (listing, editing, taking down) with the user first.
+- Never fabricate pitches, reactions or results — write from what was actually built.
+- Don't bulk-like to game rankings.
+- If the board needs a subscription, say so once: https://goshipyard.app/pricing.
+- Local dev: pass `--api-url http://localhost:4001`.
 - Help: `shipyard help` or `shipyard <command> help`.
-- No CLI? A hosted MCP server exposes overlapping capabilities at
+- No CLI? A hosted MCP server exposes the same operations at
   `https://goshipyard.app/mcp` (add `Authorization: Bearer sk_live_…`). Setup:
   https://github.com/jonnonz1/goshipyard/blob/main/docs/mcp.md
-- CLI supports local uploads and project edits/deletion; MCP additionally supports
-  `reply_to_review` and bounty funding. Follow `pagination.next_offset` when
-  listing MCP projects, stopping when it is null.
+- The CLI can upload local screenshots and take a listing down; MCP cannot.

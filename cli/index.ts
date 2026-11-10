@@ -7,17 +7,17 @@ import { UsageError } from './shared.ts';
 import { print, errLine } from './output.ts';
 import { login, logout, whoami } from './commands/auth.ts';
 import { projectsCommand } from './commands/projects.ts';
-import { reviewsCommand } from './commands/reviews.ts';
-import { walletCommand } from './commands/wallet.ts';
+import { reactionsCommand, reviewsCommand } from './commands/reactions.ts';
+import { opportunitiesCommand } from './commands/opportunities.ts';
 import { like, unlike } from './commands/social.ts';
 import { skillsCommand } from './commands/skills.ts';
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.0';
 
 function topHelp(): void {
   print(
     [
-      'shipyard — post & manage your Shipyard projects from the terminal',
+      'shipyard — list your app on Shipyard and work its board from the terminal',
       '',
       'Usage: shipyard <command> [options]',
       '',
@@ -26,13 +26,16 @@ function topHelp(): void {
       '  logout       Remove the stored API key',
       '  whoami       Show the authenticated account',
       '',
-      'Projects:',
-      '  projects     Create, list, get, update, delete projects (+ images)',
-      '  reviews      List / post reviews (comments) on projects',
-      '  like         Upvote a project          unlike  Remove your upvote',
+      'Listings:',
+      '  projects     Create, list, get, update, delete listings (+ screenshots)',
+      '  reactions    Read what people said about a listing',
+      '  like         Upvote a listing          unlike  Remove your upvote',
       '',
-      'Money & agents:',
-      '  wallet       Show credit balance; load credit to fund review bounties',
+      'The board (paid plan):',
+      '  opportunities  Threads where people ask about what your app does, with a',
+      '                 suggested reply each; mark them posted or dismissed',
+      '',
+      'Agents:',
       '  skills       Install the Shipyard skill for Claude Code / Cursor / AGENTS.md',
       '',
       'Global flags:',
@@ -45,8 +48,8 @@ function topHelp(): void {
       '  shipyard login',
       '  shipyard projects create -t Foglight -p "Maps for makers" -u https://foglight.app -c devtools',
       '  shipyard projects list --mine --json | jq .data',
-      '  shipyard reviews list <id>          shipyard like <id>',
-      '  shipyard wallet                     shipyard skills install',
+      '  shipyard reactions <id>             shipyard like <id>',
+      '  shipyard opportunities list <id>    shipyard skills install',
     ].join('\n'),
   );
 }
@@ -76,9 +79,18 @@ export async function run(argv: string[]): Promise<number> {
     case 'p':
       await projectsCommand(rest);
       return 0;
+    case 'reactions':
+    case 'reaction':
+      await reactionsCommand(rest);
+      return 0;
     case 'reviews':
     case 'review':
       await reviewsCommand(rest);
+      return 0;
+    case 'opportunities':
+    case 'opps':
+    case 'board':
+      await opportunitiesCommand(rest);
       return 0;
     case 'like':
     case 'upvote':
@@ -90,8 +102,7 @@ export async function run(argv: string[]): Promise<number> {
       return 0;
     case 'wallet':
     case 'balance':
-      await walletCommand(rest);
-      return 0;
+      throw new UsageError('The wallet and review bounties ended with Shipyard v1.');
     case 'skills':
     case 'skill':
       await skillsCommand(rest);
